@@ -11,6 +11,7 @@ ProfileGPT is an AI-powered "Ask Eric" web app for recruiters. It uses OpenAI's 
 - Python Flask web framework
 - Gunicorn WSGI server
 - OpenAI Responses API
+- uv package manager
 - Docker (slim Python image)
 
 ## Configuration
@@ -20,9 +21,16 @@ ProfileGPT is an AI-powered "Ask Eric" web app for recruiters. It uses OpenAI's 
 
 ## Running the App
 
-The app supports two modes controlled via command-line arguments:
-- Local development (Flask dev server)
-- Container mode (Gunicorn in Docker)
+```bash
+# Local development
+uv venv
+uv pip install -e .
+uv run python app.py --mode=local
+
+# Docker
+docker build -t profile-gpt .
+docker run -p 5000:5000 --env-file .env -v $(pwd)/persona.txt:/data/persona.txt profile-gpt
+```
 
 ## Guiding Document
 

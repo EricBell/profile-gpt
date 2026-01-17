@@ -67,6 +67,7 @@ This is a **public website** with no authentication. Anyone can access and use t
 | Backend Framework | Python Flask |
 | WSGI Server | Gunicorn |
 | AI Provider | OpenAI Responses API |
+| Package Manager | uv |
 | Containerization | Docker |
 | Base Image | Python slim variant |
 | Deployment Platform | Dokploy on VPS |
@@ -76,8 +77,8 @@ This is a **public website** with no authentication. Anyone can access and use t
 ```
 profile-gpt/
 ├── app.py                 # Flask application entry point
+├── pyproject.toml         # Project config and dependencies (for uv)
 ├── persona.txt            # System instructions (mounted at runtime, not in container)
-├── requirements.txt       # Python dependencies
 ├── Dockerfile             # Container definition
 ├── docker-compose.yml     # Container orchestration (optional)
 ├── .env                   # API credentials (gitignored)
@@ -158,11 +159,12 @@ All development is done locally. The application must work in both local and con
 
 #### 6.1.1 Local Development (without Docker)
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Create virtual environment and install dependencies
+uv venv
+uv pip install -e .
 
 # Run locally
-python app.py --mode=local
+uv run python app.py --mode=local
 ```
 
 #### 6.1.2 Local Container Testing
@@ -180,7 +182,8 @@ docker run -p 5000:5000 --env-file .env \
 
 #### 6.2.1 Dockerfile Requirements
 - Use official Python slim image as base
-- Install only necessary dependencies
+- Install uv from official image for fast dependency installation
+- Install dependencies from pyproject.toml
 - Copy application code (but NOT the persona file)
 - Expose appropriate port
 - Set Gunicorn as the entry point for production

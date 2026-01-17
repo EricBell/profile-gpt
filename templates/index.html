@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ask Eric</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #343541;
+            color: #ececf1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid #4d4d4f;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .status-bar {
+            font-size: 0.875rem;
+            color: #8e8ea0;
+            margin-top: 0.5rem;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .message {
+            max-width: 48rem;
+            margin: 0 auto 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .message.user {
+            background-color: #40414f;
+        }
+
+        .message.assistant {
+            background-color: #444654;
+        }
+
+        .message-role {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #8e8ea0;
+            text-transform: uppercase;
+        }
+
+        .message-content {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .input-container {
+            padding: 1rem;
+            background-color: #343541;
+            border-top: 1px solid #4d4d4f;
+        }
+
+        .input-wrapper {
+            max-width: 48rem;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 1rem;
+            padding-right: 3rem;
+            border: 1px solid #4d4d4f;
+            border-radius: 0.75rem;
+            background-color: #40414f;
+            color: #ececf1;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            min-height: 52px;
+            max-height: 200px;
+        }
+
+        .input-box:focus {
+            border-color: #8e8ea0;
+        }
+
+        .input-box:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-button {
+            position: absolute;
+            right: 0.75rem;
+            bottom: 0.75rem;
+            background-color: #19c37d;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            background-color: #1a9d6a;
+        }
+
+        .send-button:disabled {
+            background-color: #4d4d4f;
+            cursor: not-allowed;
+        }
+
+        .send-button svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .limit-message {
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 1rem;
+            background-color: #c0392b;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .welcome-message {
+            max-width: 48rem;
+            margin: 2rem auto;
+            text-align: center;
+            color: #8e8ea0;
+        }
+
+        .welcome-message h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ececf1;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #8e8ea0;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #e74c3c;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ask Eric</h1>
+        <div class="status-bar">
+            <span id="query-status">Questions: <span id="query-count">{{ query_count }}</span> / {{ max_queries }}</span>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chat-container">
+        <div class="welcome-message" id="welcome">
+            <h2>Welcome!</h2>
+            <p>Ask me anything about Eric Bell's professional experience, skills, and working style.</p>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <textarea
+                id="message-input"
+                class="input-box"
+                placeholder="Ask a question..."
+                rows="1"
+                maxlength="{{ max_queries }}"
+            ></textarea>
+            <button id="send-button" class="send-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2"/>
+                </svg>
+            </button>
+        </div>
+        <div id="error-container" class="error-message" style="display: none;"></div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const queryCountEl = document.getElementById('query-count');
+        const errorContainer = document.getElementById('error-container');
+        const welcome = document.getElementById('welcome');
+
+        const maxQueries = {{ max_queries }};
+        let isLoading = false;
+
+        function autoResize() {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
+        }
+
+        messageInput.addEventListener('input', autoResize);
+
+        function addMessage(role, content) {
+            if (welcome) {
+                welcome.style.display = 'none';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const roleLabel = role === 'user' ? 'You' : 'Eric';
+            messageDiv.innerHTML = `
+                <div class="message-role">${roleLabel}</div>
+                <div class="message-content">${escapeHtml(content)}</div>
+            `;
+
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
+            setTimeout(() => {
+                errorContainer.style.display = 'none';
+            }, 5000);
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            sendButton.disabled = loading;
+            messageInput.disabled = loading;
+
+            if (loading) {
+                sendButton.innerHTML = '<span class="loading"></span>';
+            } else {
+                sendButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2"/>
+                    </svg>
+                `;
+            }
+        }
+
+        function disableInput(message) {
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            messageInput.placeholder = message;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isLoading) return;
+
+            addMessage('user', message);
+            messageInput.value = '';
+            autoResize();
+            setLoading(true);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    addMessage('assistant', data.response);
+                    queryCountEl.textContent = data.query_count;
+
+                    if (data.query_count >= maxQueries) {
+                        disableInput('Query limit reached for this session');
+                    }
+                } else if (response.status === 429) {
+                    disableInput('Query limit reached for this session');
+                    showError(data.message);
+                } else {
+                    showError(data.message || data.error || 'An error occurred');
+                }
+            } catch (error) {
+                showError('Failed to send message. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Check initial status
+        if ({{ query_count }} >= maxQueries) {
+            disableInput('Query limit reached for this session');
+        }
+    </script>
+</body>
+</html>

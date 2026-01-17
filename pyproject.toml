@@ -1,0 +1,15 @@
+[project]
+name = "profile-gpt"
+version = "0.1.0"
+description = "AI-powered Ask Eric web app for recruiters"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0.0",
+    "gunicorn>=21.0.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+profile-gpt = "app:main"
