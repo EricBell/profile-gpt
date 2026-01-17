@@ -29,7 +29,10 @@ uv run python app.py --mode=local
 
 # Docker
 docker build -t profile-gpt .
-docker run -p 5000:5000 --env-file .env -v $(pwd)/persona.txt:/data/persona.txt profile-gpt
+docker run -p 5000:5000 --env-file .env \
+  -v $(pwd)/persona.txt:/data/persona.txt \
+  -v $(pwd)/logs:/data/logs \
+  profile-gpt
 ```
 
 ## Guiding Document

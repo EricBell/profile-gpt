@@ -1,6 +1,8 @@
 import argparse
 import os
 import re
+import uuid
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -14,6 +16,7 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-pr
 MAX_QUERIES_PER_SESSION = int(os.environ.get('MAX_QUERIES_PER_SESSION', 20))
 MAX_QUERY_LENGTH = int(os.environ.get('MAX_QUERY_LENGTH', 500))
 PERSONA_FILE_PATH = os.environ.get('PERSONA_FILE_PATH', './persona.txt')
+QUERY_LOG_PATH = os.environ.get('QUERY_LOG_PATH', './logs')
 
 # OpenAI client (lazy initialization)
 _client = None
@@ -92,6 +95,38 @@ def add_to_conversation(role, content):
     session['conversation'] = conversation[-20:]
 
 
+def get_session_id():
+    """Get or create a unique session ID."""
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())[:8]
+    return session['session_id']
+
+
+def log_query(query):
+    """Log a query to the daily log file."""
+    try:
+        # Ensure log directory exists
+        os.makedirs(QUERY_LOG_PATH, exist_ok=True)
+
+        # Generate filename: YYMMDD-Queries
+        today = datetime.now()
+        filename = today.strftime('%y%m%d') + '-Queries'
+        filepath = os.path.join(QUERY_LOG_PATH, filename)
+
+        # Get session ID
+        session_id = get_session_id()
+
+        # Sanitize query for logging (replace newlines with spaces)
+        sanitized_query = query.replace('\n', ' ').replace('\r', '')
+
+        # Append to file
+        with open(filepath, 'a') as f:
+            f.write(f"{session_id} {sanitized_query}\n")
+    except Exception:
+        # Don't let logging failures break the app
+        pass
+
+
 @app.route('/')
 def index():
     """Render the chat interface."""
@@ -139,6 +174,9 @@ def chat():
             'error': 'Message too long',
             'max_length': MAX_QUERY_LENGTH
         }), 400
+
+    # Log the query
+    log_query(user_message)
 
     try:
         # Load persona (re-read each time for hot-swapping)

@@ -18,6 +18,7 @@ COPY templates/ templates/
 # Set default environment variables
 ENV PORT=5000
 ENV PERSONA_FILE_PATH=/data/persona.txt
+ENV QUERY_LOG_PATH=/data/logs
 
 # Expose port
 EXPOSE 5000

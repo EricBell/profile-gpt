@@ -1,0 +1,26 @@
+This file contains information learned that may be useful.
+
+The Flask secret key is used to cryptographically sign session cookies.
+
+  What it does:
+  - Flask stores session data in cookies on the client's browser
+  - The secret key signs these cookies so they can't be tampered with
+  - If someone modifies the cookie, the signature won't match and Flask rejects it
+
+  In this app, it protects:
+  - query_count - prevents users from resetting their query limit by editing the cookie
+  - conversation - prevents manipulation of chat history
+
+  How to generate one:
+
+  python -c "import secrets; print(secrets.token_hex(32))"
+
+  Or:
+
+  uv run python -c "import secrets; print(secrets.token_hex(32))"
+
+  Important:
+  - Must be kept secret (in .env, never committed)
+  - Should be a long random string (32+ bytes)
+  - If it changes, all existing sessions become invalid
+  - The default dev-secret-key-change-in-production in the code is only for local testing - production must use a real random key

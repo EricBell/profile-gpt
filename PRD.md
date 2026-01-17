@@ -56,6 +56,14 @@ This is a **public website** with no authentication. Anyone can access and use t
 - Query limit is configurable via environment variable (`MAX_QUERIES_PER_SESSION`)
 - Default limit: 20 queries per session
 
+#### 2.1.6 Query Logging
+- All queries are logged to daily log files for analytics
+- Log directory configurable via `QUERY_LOG_PATH` environment variable
+- File naming: `YYMMDD-Queries` (e.g., `260117-Queries` for January 17, 2026)
+- Each new day creates a new log file automatically
+- Log format: `<session_id> <query_text>` (one query per line)
+- Session ID is an 8-character unique identifier per browser session
+
 ---
 
 ## 3. Technical Architecture
@@ -138,6 +146,7 @@ The application must support two execution modes controlled via command-line arg
 | `OPENAI_API_KEY` | API key for OpenAI | Yes |
 | `FLASK_SECRET_KEY` | Secret key for Flask sessions | Yes |
 | `PERSONA_FILE_PATH` | Path to persona.txt (default: `/data/persona.txt` in container, `./persona.txt` locally) | No |
+| `QUERY_LOG_PATH` | Directory for query log files (default: `./logs`) | No |
 | `MAX_QUERIES_PER_SESSION` | Maximum queries per session (default: 20) | No |
 | `MAX_QUERY_LENGTH` | Maximum characters per query (default: 500) | No |
 | `FLASK_ENV` | Environment (development/production) | No |
@@ -172,9 +181,10 @@ uv run python app.py --mode=local
 # Build container
 docker build -t profile-gpt .
 
-# Run container locally with mounted persona file
+# Run container locally with mounted persona file and logs directory
 docker run -p 5000:5000 --env-file .env \
   -v $(pwd)/persona.txt:/data/persona.txt \
+  -v $(pwd)/logs:/data/logs \
   profile-gpt
 ```
 
@@ -193,7 +203,12 @@ docker run -p 5000:5000 --env-file .env \
 The `persona.txt` file must be mounted from the host filesystem:
 - Allows updating AI persona without container redeployment
 - Upload new file to server, changes take effect immediately
-- Application should read from a configurable path (e.g., `/data/persona.txt`)
+
+#### 6.2.3 Volume Mount for Query Logs
+The logs directory should be mounted from the host filesystem:
+- Persists query logs across container restarts/redeployments
+- Enables access to logs without entering the container
+- Default container path: `/data/logs`
 
 ### 6.3 Production Deployment (Dokploy VPS)
 
