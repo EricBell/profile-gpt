@@ -76,7 +76,7 @@ This is a **public website** with no authentication. Anyone can access and use t
 ```
 profile-gpt/
 ├── app.py                 # Flask application entry point
-├── persona.txt            # System instructions defining Eric's persona
+├── persona.txt            # System instructions (mounted at runtime, not in container)
 ├── requirements.txt       # Python dependencies
 ├── Dockerfile             # Container definition
 ├── docker-compose.yml     # Container orchestration (optional)
@@ -114,8 +114,10 @@ The application must support two execution modes controlled via command-line arg
 - Never commit credentials to version control
 
 #### 4.1.2 System Instructions
-- Stored in `persona.txt` (or similar file) in the project directory
-- Loaded at application startup
+- Stored in `persona.txt` (or similar file)
+- **Hot-swappable**: File is mounted from host filesystem, not baked into container
+- Can be updated on the server without redeploying the container
+- Application reads the file on each request (or with reasonable caching)
 - Defines Eric Bell's persona, background, and response guidelines
 - Should incorporate principles from `Intentions.md`
 
@@ -134,6 +136,7 @@ The application must support two execution modes controlled via command-line arg
 |----------|-------------|----------|
 | `OPENAI_API_KEY` | API key for OpenAI | Yes |
 | `FLASK_SECRET_KEY` | Secret key for Flask sessions | Yes |
+| `PERSONA_FILE_PATH` | Path to persona.txt (default: `/data/persona.txt` in container, `./persona.txt` locally) | No |
 | `MAX_QUERIES_PER_SESSION` | Maximum queries per session (default: 20) | No |
 | `MAX_QUERY_LENGTH` | Maximum characters per query (default: 500) | No |
 | `FLASK_ENV` | Environment (development/production) | No |
@@ -167,8 +170,10 @@ python app.py --mode=local
 # Build container
 docker build -t profile-gpt .
 
-# Run container locally
-docker run -p 5000:5000 --env-file .env profile-gpt
+# Run container locally with mounted persona file
+docker run -p 5000:5000 --env-file .env \
+  -v $(pwd)/persona.txt:/data/persona.txt \
+  profile-gpt
 ```
 
 ### 6.2 Docker Configuration
@@ -176,10 +181,16 @@ docker run -p 5000:5000 --env-file .env profile-gpt
 #### 6.2.1 Dockerfile Requirements
 - Use official Python slim image as base
 - Install only necessary dependencies
-- Copy application code and persona file
+- Copy application code (but NOT the persona file)
 - Expose appropriate port
 - Set Gunicorn as the entry point for production
 - Container must be stateless and ready for Dokploy deployment
+
+#### 6.2.2 Volume Mount for System Instructions
+The `persona.txt` file must be mounted from the host filesystem:
+- Allows updating AI persona without container redeployment
+- Upload new file to server, changes take effect immediately
+- Application should read from a configurable path (e.g., `/data/persona.txt`)
 
 ### 6.3 Production Deployment (Dokploy VPS)
 
@@ -191,6 +202,7 @@ docker run -p 5000:5000 --env-file .env profile-gpt
 #### 6.3.2 Dokploy Requirements
 - Dockerfile must be present in repository root
 - Environment variables configured in Dokploy dashboard
+- Volume mount configured for `persona.txt` (host path → `/data/persona.txt`)
 - Health check endpoint recommended for container monitoring
 - Application should listen on the port specified by `PORT` environment variable
 
@@ -273,6 +285,7 @@ docker run -p 5000:5000 --env-file .env profile-gpt
 - [ ] Conversation context is maintained within a session
 - [ ] Session-based query limiting works correctly
 - [ ] Query limit is configurable via environment variable
+- [ ] Persona file is hot-swappable without redeployment
 - [ ] Prompt injection attempts are blocked or handled safely
 - [ ] API credentials are properly secured
 - [ ] Application handles API errors gracefully
