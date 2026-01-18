@@ -13,6 +13,8 @@ RUN uv pip install --system --no-cache .
 
 # Copy application code (NOT persona.txt - that's mounted at runtime)
 COPY app.py .
+COPY version.py .
+COPY job_vetting.py .
 COPY templates/ templates/
 
 # Set default environment variables

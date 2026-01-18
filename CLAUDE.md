@@ -38,3 +38,14 @@ docker run -p 5000:5000 --env-file .env \
 ## Guiding Document
 
 **See [Intentions.md](Intentions.md)** - This file defines the core principles that guide all development decisions for this project. The AI persona, response style, and interaction patterns described there should inform every feature and implementation choice.
+
+## Version Management
+
+Version format: MAJOR.MINOR.PATCH (starting at 0.1.0)
+
+**Incrementing rules:**
+- MINOR: Increment when completing a new feature set
+- PATCH: Increment when fixing a bug or set of bugs in one turn
+- MAJOR: Only increment when instructed by the user (resets MINOR and PATCH to 0)
+
+Update both `version.py` and `pyproject.toml` when changing versions.

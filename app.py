@@ -2,10 +2,14 @@ import argparse
 import os
 import re
 import uuid
+from dataclasses import asdict
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
 from dotenv import load_dotenv
+
+from version import __version__
+from job_vetting import sanitize_job_description, evaluate_job_description
 
 load_dotenv()
 
@@ -15,6 +19,7 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-pr
 # Configuration
 MAX_QUERIES_PER_SESSION = int(os.environ.get('MAX_QUERIES_PER_SESSION', 20))
 MAX_QUERY_LENGTH = int(os.environ.get('MAX_QUERY_LENGTH', 500))
+MAX_JOB_DESCRIPTION_LENGTH = int(os.environ.get('MAX_JOB_DESCRIPTION_LENGTH', 5000))
 PERSONA_FILE_PATH = os.environ.get('PERSONA_FILE_PATH', './persona.txt')
 QUERY_LOG_PATH = os.environ.get('QUERY_LOG_PATH', './logs')
 
@@ -133,13 +138,15 @@ def index():
     return render_template('index.html',
                          query_count=get_query_count(),
                          max_queries=MAX_QUERIES_PER_SESSION,
-                         max_query_length=MAX_QUERY_LENGTH)
+                         max_query_length=MAX_QUERY_LENGTH,
+                         max_job_description_length=MAX_JOB_DESCRIPTION_LENGTH,
+                         version=__version__)
 
 
 @app.route('/health')
 def health():
     """Health check endpoint for container monitoring."""
-    return jsonify({'status': 'healthy'}), 200
+    return jsonify({'status': 'healthy', 'version': __version__}), 200
 
 
 @app.route('/chat', methods=['POST'])
@@ -221,13 +228,48 @@ def chat():
         }), 500
 
 
+@app.route('/vet', methods=['POST'])
+def vet():
+    """Evaluate a job description against the persona."""
+    # Get and validate input
+    data = request.get_json()
+    if not data or 'job_description' not in data:
+        return jsonify({'error': 'No job description provided'}), 400
+
+    job_description = data.get('job_description', '').strip()
+    if not job_description:
+        return jsonify({'error': 'Empty job description'}), 400
+
+    # Sanitize input
+    job_description = sanitize_job_description(job_description, MAX_JOB_DESCRIPTION_LENGTH)
+    if not job_description:
+        return jsonify({'error': 'Invalid job description'}), 400
+
+    try:
+        # Load persona
+        persona = load_persona()
+
+        # Get OpenAI client and evaluate
+        client = get_openai_client()
+        result = evaluate_job_description(client, job_description, persona)
+
+        return jsonify(asdict(result))
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to evaluate job description',
+            'message': str(e)
+        }), 500
+
+
 @app.route('/status')
 def status():
     """Get current session status."""
     return jsonify({
         'query_count': get_query_count(),
         'max_queries': MAX_QUERIES_PER_SESSION,
-        'queries_remaining': MAX_QUERIES_PER_SESSION - get_query_count()
+        'queries_remaining': MAX_QUERIES_PER_SESSION - get_query_count(),
+        'version': __version__
     })
 
 
