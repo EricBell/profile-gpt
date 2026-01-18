@@ -24,3 +24,6 @@ The Flask secret key is used to cryptographically sign session cookies.
   - Should be a long random string (32+ bytes)
   - If it changes, all existing sessions become invalid
   - The default dev-secret-key-change-in-production in the code is only for local testing - production must use a real random key
+
+
+I want to permit any LLM to be used if possible. Is this a job for OpenRouter. If so, how? and is there a cost to using OpenRouter that is too much?
