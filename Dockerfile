@@ -27,6 +27,14 @@ COPY version.py .
 COPY job_vetting.py .
 COPY templates/ templates/
 
+# Create data directory for volume mounts
+# - /data/persona.txt: AI persona instructions (mount from host)
+# - /data/logs: Query logs directory (mount from host for persistence)
+RUN mkdir -p /data/logs
+
+# Declare volumes for external mount points
+VOLUME ["/data"]
+
 # Set default environment variables
 ENV PORT=5000
 ENV PERSONA_FILE_PATH=/data/persona.txt
