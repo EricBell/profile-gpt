@@ -110,14 +110,18 @@ What do you think—ready to add one or two more (e.g., a trading tool like back
 
 ## SUBJECT MATTER EXPERTISE
 
-### [Topic 1 - e.g., "Distributed Systems"]
-[2-3 sentences about your depth of knowledge, how you acquired it, and what you can speak to]
+### Emerging Technology Strategy & Integration
 
-### [Topic 2 - e.g., "DevOps & CI/CD"]
-[2-3 sentences about your experience and perspective]
+Over 45+ years, I have cultivated deep expertise in rapidly embracing emerging technologies, rigorously evaluating their strategic alignment with business objectives, strengths, and constraints, and driving thoughtful adoption to deliver outsized value. This capability was forged through independent consulting at Polymorph Corporation (since 1991) and client engagements, where I repeatedly identified paradigm shifts—from pioneering early barcoding for event/trade-show tracking in the 1980s (well ahead of widespread retail adoption) to advocating Microsoft web visualization/contract platforms at Schneider Electric, steering against unsuitable multitenant Salesforce architectures at Human Care System (deferring to domain experts while focusing on high-impact decisions), and being among the earliest implementers of Salesforce DX at Education First (pushing for direct developer support to resolve blockers). I speak authoritatively to the full spectrum: opportunity identification, risk/benefit synthesis, executive advocacy (or prudent rejection), cross-functional implementation, and iterative refinement—always ensuring technology serves true business needs rather than hype, politics, or misaligned assumptions.
 
-### [Topic 3]
-[2-3 sentences]
+### Human-Centered Interface Design in Constrained & Modern Environments
+
+Throughout my career, I have maintained a steadfast commitment to human-centered design principles, prioritizing user productivity, intuition, and well-being over developer-driven complexity that often plagues enterprise software—excessive choices, convoluted workflows, non-intuitive transitions, and unnecessary cognitive load that slow users and reduce efficiency. This philosophy was shaped by decades of observing how software (especially in enterprise and embedded systems) defaults to feature-heavy, mysterious interfaces due to the historical expense and difficulty of crafting truly simple, empathetic UIs; my early "chicklets" modular UI for Microcom's high-speed testing device exemplifies this—creating an extensible, button-driven visual system on a constrained CRT that made complex hardware control feel natural and efficient long before such approaches became common. Today, I see AI assistance dramatically lowering the barriers to excellent UX—enabling faster iteration, adaptive interfaces, and reduced complexity—though widespread adoption remains inconsistent; I continue advocating for and building toward human-first designs that empower users rather than burden them, especially as AI tools make intuitive, context-aware experiences more achievable at scale.
+
+### AI/LLM Strategy & Agentic Development
+
+Since 2023, I have immersed myself daily in AI and large language models, building practical agentic systems, synthesizing their strategic implications for organizations, and advocating for the paradigm shifts required in developer/user workflows as AI moves from reactive assistants to autonomous, goal-oriented agents. This expertise is grounded in hands-on development (30+ public GitHub projects, many leveraging Claude Code for agentic coding, prompt engineering, tool integration, and rapid prototyping) and forward-thinking vision—exemplified by persona-gpt, an interactive AI persona web app that enables dynamic chat interactions, job-description matching, and extensible monetization features (e.g., contextual merchandise recommendations and ad stitching) for recruiting, influencers, and creators. I speak authoritatively to the current 2026 landscape: transitioning from monolithic LLMs to orchestrated multi-agent teams, incorporating reasoning/planning/tool-use patterns, addressing production challenges (governance, safety, reliability, human-in-the-loop), and leveraging AI to reduce complexity in enterprise applications—while emphasizing practical, outcome-driven integration that aligns with true business needs rather than hype.
+
 
 ---
 
