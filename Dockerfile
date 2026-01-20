@@ -33,7 +33,7 @@ COPY templates/ templates/
 RUN mkdir -p /data/logs
 
 # Declare volumes for external mount points
-VOLUME ["/data"]
+# VOLUME ["/data"]
 
 # Set default environment variables
 ENV PORT=5000
