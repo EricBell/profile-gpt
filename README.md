@@ -62,7 +62,8 @@ docker-compose up -d
 - Session-based query limiting (default: 20 queries)
 - Conversation context maintained within session
 - Hot-swappable persona file (no redeploy needed)
-- Query logging for analytics
+- **Smart intent filtering** - Pre-LLM filtering of out-of-scope queries
+- Query logging for analytics with filter tracking
 - Health check endpoint for monitoring
 
 ## Project Structure
@@ -70,7 +71,10 @@ docker-compose up -d
 ```
 profile-gpt/
 ├── app.py                 # Flask application
+├── intent_validator.py    # Pre-LLM intent filtering
 ├── job_vetting.py         # Job fit analysis logic
+├── query_logger.py        # Query logging with filter tracking
+├── analyze_logs.py        # Analytics script for logs
 ├── version.py             # Version string
 ├── persona.txt            # AI system instructions (mounted at runtime)
 ├── templates/
@@ -157,6 +161,58 @@ The `persona.txt` file contains system instructions that define how the AI respo
    - `./logs:/data/logs`
 
 The app exposes `/health` for container health monitoring.
+
+## Intent Filtering
+
+The app uses **pre-LLM intent filtering** to catch obviously out-of-scope queries before they reach the OpenAI API. This provides:
+
+- **Cost savings**: No API tokens used for obvious refusals (weather, jokes, unrelated topics)
+- **Faster responses**: Instant replies without API latency
+- **Natural variation**: Rotating refusal messages feel less robotic
+
+### How It Works
+
+1. **Conservative filtering**: Only blocks obviously out-of-scope queries
+2. **Safe defaults**: When uncertain, queries go to LLM (prefer false negatives over false positives)
+3. **Balanced tone**: Refusal messages are professional but approachable
+
+### Analytics
+
+Track filtering effectiveness with the analytics script:
+
+```bash
+# Analyze all logs
+python analyze_logs.py
+
+# Analyze last 7 days
+python analyze_logs.py --days 7
+
+# Specify log directory
+python analyze_logs.py /path/to/logs
+```
+
+The script reports:
+- Filter rate (% queries caught by pre-filter)
+- Token savings estimate
+- Filter breakdown by category
+- Recent filtered queries (for false positive review)
+
+### Monitoring
+
+Log entries include filtering metadata:
+
+```json
+{
+  "session_id": "abc123",
+  "timestamp": "2026-01-27T10:30:00Z",
+  "query": "What's the weather?",
+  "response": "I'm focused on Eric's professional background...",
+  "filtered_pre_llm": true,
+  "filter_category": "unrelated_topics"
+}
+```
+
+**Decision point**: After 1-2 weeks of deployment, review analytics. If false positive rate >5%, consider upgrading to hybrid approach with LLM classification for uncertain queries.
 
 ## Security
 

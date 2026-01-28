@@ -12,6 +12,7 @@ from version import __version__
 from job_vetting import sanitize_job_description, evaluate_job_description
 from query_logger import log_interaction
 from config_validator import validate_flask_secret_key, validate_admin_reset_key
+from intent_validator import is_likely_in_scope, get_refusal_response, get_filter_category
 
 load_dotenv()
 
@@ -180,6 +181,33 @@ def chat():
             'max_length': MAX_QUERY_LENGTH
         }), 400
 
+    # Intent validation: pre-filter out-of-scope queries
+    if not is_likely_in_scope(user_message):
+        # Out-of-scope query detected - return canned response without LLM call
+        filter_category = get_filter_category(user_message)
+        refusal_message = get_refusal_response()
+
+        # Log the filtered interaction
+        log_interaction(
+            QUERY_LOG_PATH,
+            get_session_id(),
+            user_message,
+            refusal_message,
+            filtered_pre_llm=True,
+            filter_category=filter_category
+        )
+
+        # Increment query count (prevent abuse)
+        new_count = increment_query_count()
+
+        return jsonify({
+            'response': refusal_message,
+            'query_count': new_count,
+            'max_queries': MAX_QUERIES_PER_SESSION,
+            'queries_remaining': MAX_QUERIES_PER_SESSION - new_count,
+            'filtered_pre_llm': True
+        })
+
     try:
         # Load persona (re-read each time for hot-swapping)
         persona = load_persona()
@@ -203,7 +231,14 @@ def chat():
         assistant_message = response.choices[0].message.content
 
         # Log the interaction
-        log_interaction(QUERY_LOG_PATH, get_session_id(), user_message, assistant_message)
+        log_interaction(
+            QUERY_LOG_PATH,
+            get_session_id(),
+            user_message,
+            assistant_message,
+            filtered_pre_llm=False,
+            filter_category=None
+        )
 
         # Add assistant response to history
         add_to_conversation('assistant', assistant_message)

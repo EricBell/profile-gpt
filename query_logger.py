@@ -3,7 +3,14 @@ import os
 from datetime import datetime
 
 
-def log_interaction(log_path: str, session_id: str, query: str, response: str) -> None:
+def log_interaction(
+    log_path: str,
+    session_id: str,
+    query: str,
+    response: str,
+    filtered_pre_llm: bool = False,
+    filter_category: str = None
+) -> None:
     """Log a chat interaction in NDJSON format.
 
     Args:
@@ -11,6 +18,8 @@ def log_interaction(log_path: str, session_id: str, query: str, response: str) -
         session_id: Unique session identifier
         query: User's query text
         response: Assistant's response text
+        filtered_pre_llm: Whether query was filtered before LLM call
+        filter_category: Category of filter that caught the query (if filtered)
     """
     try:
         # Ensure log directory exists
@@ -23,8 +32,11 @@ def log_interaction(log_path: str, session_id: str, query: str, response: str) -
         # Build log entry
         entry = {
             "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
             "query": query,
-            "response": response
+            "response": response,
+            "filtered_pre_llm": filtered_pre_llm,
+            "filter_category": filter_category
         }
 
         # Append NDJSON line
