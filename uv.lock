@@ -357,7 +357,7 @@ wheels = [
 
 [[package]]
 name = "profile-gpt"
-version = "0.8.0"
+version = "0.7.2"
 source = { virtual = "." }
 dependencies = [
     { name = "flask" },
