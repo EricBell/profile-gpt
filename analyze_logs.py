@@ -193,7 +193,14 @@ def analyze_directory(log_dir: Path, days: int = None) -> None:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Analyze query logs for filtering statistics'
+        description='Analyze query logs for filtering statistics',
+        epilog="""
+Examples:
+  %(prog)s                    # Analyze ./logs (default)
+  %(prog)s /path/to/logs      # Analyze specific directory
+  %(prog)s --days 7           # Analyze last 7 days only
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
         'log_directory',
@@ -208,6 +215,15 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Validate log directory path
+    if args.log_directory in ['-', '--']:
+        print("Error: Invalid log directory path. Use one of these:")
+        print("  python analyze_logs.py              # Use default ./logs")
+        print("  python analyze_logs.py /path/to/dir # Use specific directory")
+        print("  python analyze_logs.py --days 7     # Analyze last 7 days")
+        return
+
     log_dir = Path(args.log_directory)
 
     analyze_directory(log_dir, args.days)

@@ -24,6 +24,10 @@ OUT_OF_SCOPE_PATTERNS = {
         'are you a bot',
         'are you an ai',
         'what is your purpose',
+        'what is my name',
+        'who am i',
+        'do you remember me',
+        'can you see me',
     ],
     'unrelated_topics': [
         'weather',
@@ -45,6 +49,16 @@ OUT_OF_SCOPE_PATTERNS = {
         'news today',
         'stock market',
         'cryptocurrency',
+        'horoscope',
+        'zodiac',
+        'astrology',
+        "what's the date",
+        "what's the time",
+        'what day is',
+        'current date',
+        'current time',
+        'today date',
+        'time now',
     ],
     'personal_life': [
         'family',
@@ -77,6 +91,9 @@ OUT_OF_SCOPE_PATTERNS = {
         'translate',
         'define',
         'what does',
+        'what is ',
+        'math problem',
+        'solve equation',
     ],
 }
 
@@ -122,6 +139,15 @@ REFUSAL_RESPONSES = [
 ]
 
 
+def _contains_math_expression(message: str) -> bool:
+    """Check if message contains obvious math expressions."""
+    import re
+    # Pattern for basic math: numbers with operators
+    # Matches things like "4+2", "what's 2*3", "10-5", "8/2"
+    math_pattern = r'\d+\s*[+\-*/×÷]\s*\d+'
+    return bool(re.search(math_pattern, message))
+
+
 def is_likely_in_scope(message: str) -> bool:
     """
     Quick heuristic check if message is likely in-scope for Eric's professional background.
@@ -143,6 +169,10 @@ def is_likely_in_scope(message: str) -> bool:
         return True
 
     message_lower = message.lower()
+
+    # Check for math expressions (e.g., "what's 4+2")
+    if _contains_math_expression(message):
+        return False
 
     # Check for strong out-of-scope signals
     for category, patterns in OUT_OF_SCOPE_PATTERNS.items():
@@ -191,6 +221,10 @@ def get_filter_category(message: str) -> str:
         where is_likely_in_scope() returned False.
     """
     message_lower = message.lower()
+
+    # Check for math expressions first
+    if _contains_math_expression(message):
+        return 'off_topic_requests'
 
     for category, patterns in OUT_OF_SCOPE_PATTERNS.items():
         for pattern in patterns:
