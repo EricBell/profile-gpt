@@ -47,13 +47,16 @@ This app is ready for deployment on Dokploy (self-hosted PaaS).
 2. Point to this repository
 3. Set environment variables in Dokploy UI:
    - `OPENAI_API_KEY` (required)
-   - `FLASK_SECRET_KEY` (required - generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
+   - `FLASK_SECRET_KEY` (required - MUST be 32+ characters, generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
+   - `ADMIN_RESET_KEY` (optional - if set, should be 16+ characters for security)
 4. Configure volumes for persistent data (`persona.txt`, `logs/`)
+
+**CRITICAL:** The application will refuse to start if `FLASK_SECRET_KEY` is not set or uses a weak/known value. Never use example values from documentation in production.
 
 **Option 2: Dockerfile**
 1. Create a new "Docker" application
 2. Point to this repository (uses Dockerfile)
-3. Set environment variables in Dokploy UI
+3. Set environment variables in Dokploy UI (same requirements as above)
 4. Add volume mounts:
    - `./persona.txt:/data/persona.txt:ro`
    - `./logs:/data/logs`

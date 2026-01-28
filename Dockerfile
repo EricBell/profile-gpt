@@ -26,6 +26,7 @@ COPY app.py .
 COPY version.py .
 COPY job_vetting.py .
 COPY query_logger.py .
+COPY config_validator.py .
 COPY templates/ templates/
 COPY static/ static/
 
@@ -42,9 +43,11 @@ ENV PORT=5000
 ENV PERSONA_FILE_PATH=/data/persona.txt
 ENV QUERY_LOG_PATH=/data/logs
 
-ENV OPENAI_API_KEY=sk-proj
-ENV FLASK_SECRET_KEY=4737d354
-ENV ADMIN_RESET_KEY=123450
+# CRITICAL: Set these environment variables when running the container!
+# Generate secure keys with: python -c "import secrets; print(secrets.token_hex(32))"
+ENV OPENAI_API_KEY=
+ENV FLASK_SECRET_KEY=
+ENV ADMIN_RESET_KEY=
 ENV MAX_QUERIES_PER_SESSION=20
 ENV MAX_QUERY_LENGTH=500
 ENV FLASK_ENV=development

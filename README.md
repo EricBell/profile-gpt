@@ -99,11 +99,29 @@ profile-gpt/
 | `MAX_JOB_DESCRIPTION_LENGTH` | No | `5000` | Max chars for job descriptions |
 | `PORT` | No | `5000` | Server port |
 
-### Generating a Secret Key
+### Generating Secret Keys
+
+**CRITICAL SECURITY REQUIREMENT:** Never use weak or default secret keys in production. The application enforces strong secrets in production mode and will refuse to start with weak values.
+
+Generate secure keys:
 
 ```bash
+# Flask session secret (required, 32+ characters)
 python -c "import secrets; print(secrets.token_hex(32))"
+
+# Admin reset key (optional, 16+ characters recommended)
+python -c "import secrets; print(secrets.token_hex(16))"
 ```
+
+**Local Development Mode:**
+- Run with `--mode=local` flag
+- Auto-generates secure keys if not set
+- Warns about weak keys but allows them for convenience
+
+**Production/Container Mode:**
+- Requires `FLASK_SECRET_KEY` to be set with 32+ characters
+- Refuses known weak values (e.g., 'dev', 'test', '4737d354')
+- Will not start if secret validation fails
 
 ### Persona File
 

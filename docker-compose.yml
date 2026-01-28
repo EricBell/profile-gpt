@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    # CRITICAL: Set FLASK_SECRET_KEY in your .env file with a secure value (32+ characters)
+    # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}

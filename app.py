@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+import sys
 import uuid
 from dataclasses import asdict
 from flask import Flask, render_template, request, jsonify, session
@@ -10,11 +11,31 @@ from dotenv import load_dotenv
 from version import __version__
 from job_vetting import sanitize_job_description, evaluate_job_description
 from query_logger import log_interaction
+from config_validator import validate_flask_secret_key, validate_admin_reset_key
 
 load_dotenv()
 
+# Detect run mode early (before Flask app initialization)
+is_local_mode = '--mode=local' in sys.argv
+
+# Validate and set Flask secret key
+flask_secret, flask_warning = validate_flask_secret_key(
+    os.environ.get('FLASK_SECRET_KEY'),
+    is_local_mode
+)
+if flask_warning:
+    print(flask_warning, file=sys.stderr)
+
+# Validate admin reset key if provided
+admin_reset, admin_warning = validate_admin_reset_key(
+    os.environ.get('ADMIN_RESET_KEY'),
+    is_local_mode
+)
+if admin_warning:
+    print(admin_warning, file=sys.stderr)
+
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
+app.secret_key = flask_secret
 
 # Configuration
 MAX_QUERIES_PER_SESSION = int(os.environ.get('MAX_QUERIES_PER_SESSION', 20))
@@ -22,7 +43,7 @@ MAX_QUERY_LENGTH = int(os.environ.get('MAX_QUERY_LENGTH', 500))
 MAX_JOB_DESCRIPTION_LENGTH = int(os.environ.get('MAX_JOB_DESCRIPTION_LENGTH', 5000))
 PERSONA_FILE_PATH = os.environ.get('PERSONA_FILE_PATH', './persona.txt')
 QUERY_LOG_PATH = os.environ.get('QUERY_LOG_PATH', './logs')
-ADMIN_RESET_KEY = os.environ.get('ADMIN_RESET_KEY', '')
+ADMIN_RESET_KEY = admin_reset
 
 # OpenAI client (lazy initialization)
 _client = None
