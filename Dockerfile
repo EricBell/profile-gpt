@@ -30,6 +30,7 @@ COPY config_validator.py .
 COPY intent_classifier.py .
 COPY templates/ templates/
 COPY static/ static/
+COPY analyze_logs.py .
 
 # Create data directory for volume mounts
 # - /data/persona.txt: AI persona instructions (mount from host)
