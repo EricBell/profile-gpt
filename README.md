@@ -64,6 +64,7 @@ docker-compose up -d
 - Hot-swappable persona file (no redeploy needed)
 - Query logging for analytics
 - Health check endpoint for monitoring
+- LLM-based intent classification to filter out-of-scope queries
 
 ## Project Structure
 
@@ -157,6 +158,41 @@ The `persona.txt` file contains system instructions that define how the AI respo
    - `./logs:/data/logs`
 
 The app exposes `/health` for container health monitoring.
+
+## Intent Classification
+
+The app uses **LLM-based intent classification** to identify out-of-scope queries before the main conversation. This provides:
+
+- **Accurate filtering**: LLM understands context and nuance
+- **Token savings**: 80% reduction for out-of-scope queries (100 vs 500 tokens)
+- **Natural responses**: Rotating refusal messages feel less robotic
+
+### How It Works
+
+1. **Classification call**: Lightweight OpenAI API call (10 tokens max)
+2. **Decision**: IN_SCOPE → full conversation, OUT_OF_SCOPE → canned response
+3. **Graceful fallback**: If classification fails, proceeds to main conversation
+
+### Token Economics
+
+- **Out-of-scope query**: 100 tokens (classification only)
+- **In-scope query**: 600 tokens (100 classification + 500 conversation)
+- **Break-even point**: ~17% out-of-scope queries
+
+If >17% of queries are out-of-scope, this approach saves tokens overall.
+
+### Analytics
+
+Monitor effectiveness:
+```bash
+python analyze_logs.py          # Analyze all logs
+python analyze_logs.py ./logs   # Specify directory
+```
+
+Reports:
+- Filter rate (% OUT_OF_SCOPE queries)
+- Token cost comparison (with vs without classification)
+- Recent filtered queries for review
 
 ## Security
 

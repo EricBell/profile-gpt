@@ -12,6 +12,7 @@ from version import __version__
 from job_vetting import sanitize_job_description, evaluate_job_description
 from query_logger import log_interaction
 from config_validator import validate_flask_secret_key, validate_admin_reset_key
+from intent_classifier import classify_intent, get_refusal_response
 
 load_dotenv()
 
@@ -180,6 +181,41 @@ def chat():
             'max_length': MAX_QUERY_LENGTH
         }), 400
 
+    # LLM-based intent classification
+    try:
+        client = get_openai_client()
+        scope = classify_intent(client, user_message)
+
+        if scope == 'OUT_OF_SCOPE':
+            # Return canned response without full conversation
+            refusal_message = get_refusal_response()
+
+            # Log the filtered interaction
+            log_interaction(
+                QUERY_LOG_PATH,
+                get_session_id(),
+                user_message,
+                refusal_message,
+                filtered_pre_llm=True
+            )
+
+            # Increment query count (prevent abuse)
+            new_count = increment_query_count()
+
+            return jsonify({
+                'response': refusal_message,
+                'query_count': new_count,
+                'max_queries': MAX_QUERIES_PER_SESSION,
+                'queries_remaining': MAX_QUERIES_PER_SESSION - new_count,
+                'filtered_pre_llm': True
+            })
+
+    except Exception as e:
+        # Classification failed - log and continue to main LLM (safe fallback)
+        print(f"Classification error: {e}", file=sys.stderr)
+        # Fall through to main conversation
+
+    # IN_SCOPE or classification failed - proceed with full conversation
     try:
         # Load persona (re-read each time for hot-swapping)
         persona = load_persona()
@@ -203,7 +239,13 @@ def chat():
         assistant_message = response.choices[0].message.content
 
         # Log the interaction
-        log_interaction(QUERY_LOG_PATH, get_session_id(), user_message, assistant_message)
+        log_interaction(
+            QUERY_LOG_PATH,
+            get_session_id(),
+            user_message,
+            assistant_message,
+            filtered_pre_llm=False
+        )
 
         # Add assistant response to history
         add_to_conversation('assistant', assistant_message)
