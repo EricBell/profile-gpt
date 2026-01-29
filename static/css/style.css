@@ -117,6 +117,32 @@ body {
     margin: 0;
 }
 
+/* Suggestion hint on landing page */
+.suggestion-hint {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.hint-text {
+    color: #b4b4c4;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-link {
+    background: none;
+    border: none;
+    color: #19c37d;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.suggestion-link:hover {
+    color: #1a9d6a;
+}
+
 /* Chat View */
 .chat-view {
     display: none;
@@ -252,6 +278,49 @@ body {
     font-size: 1.5rem;
     margin-bottom: 1rem;
     color: #ececf1;
+}
+
+/* Suggestion buttons in chat welcome */
+.suggestion-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.suggestion-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background-color: #40414f;
+    border: 1px solid #565869;
+    border-radius: 0.75rem;
+    color: #ececf1;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.suggestion-button:hover {
+    background-color: #4d4d5a;
+    border-color: #19c37d;
+    transform: translateX(4px);
+}
+
+.suggestion-icon {
+    font-size: 1.25rem;
+    width: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.suggestion-text {
+    font-size: 0.9375rem;
+    flex: 1;
 }
 
 .loading {
@@ -557,5 +626,14 @@ body {
 
     .strengths-gaps {
         grid-template-columns: 1fr;
+    }
+
+    /* Responsive: stack suggestions on mobile */
+    .suggestion-buttons {
+        gap: 0.5rem;
+    }
+
+    .suggestion-button {
+        padding: 0.875rem 1rem;
     }
 }

@@ -151,6 +151,23 @@
         }
     }
 
+    /**
+     * Handle suggestion button clicks
+     * Auto-submits a pre-defined question
+     */
+    function submitSuggestion(suggestionText) {
+        // If not in chat view, switch to it first
+        if (!chatView.classList.contains('active')) {
+            showView('chat');
+        }
+
+        // Set the message input value
+        messageInput.value = suggestionText;
+
+        // Auto-submit the message
+        sendMessage();
+    }
+
     // Vetting functionality
     function showVettingError(message) {
         vettingError.textContent = message;
@@ -277,6 +294,14 @@
     });
 
     analyzeButton.addEventListener('click', analyzeJob);
+
+    // Suggestion button handlers
+    document.querySelectorAll('.suggestion-link, .suggestion-button').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const suggestion = this.dataset.suggestion || this.textContent.trim();
+            submitSuggestion(suggestion);
+        });
+    });
 
     // Check initial status
     if (config.queryCount >= config.maxQueries) {
