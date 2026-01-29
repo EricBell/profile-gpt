@@ -13,6 +13,7 @@ from job_vetting import sanitize_job_description, evaluate_job_description
 from query_logger import log_interaction
 from config_validator import validate_flask_secret_key, validate_admin_reset_key
 from intent_classifier import classify_intent, get_refusal_response
+from dataset_manager import parse_log_entries, validate_date_format
 
 load_dotenv()
 
@@ -331,6 +332,106 @@ def reset():
         'message': 'Session reset successfully',
         'previous_query_count': old_count
     })
+
+
+@app.route('/dataset')
+def dataset():
+    """Admin endpoint to view conversation logs. Requires ADMIN_RESET_KEY."""
+    if not ADMIN_RESET_KEY:
+        return jsonify({'error': 'Dataset endpoint not configured'}), 403
+
+    key = request.args.get('key', '')
+    if key != ADMIN_RESET_KEY:
+        return jsonify({'error': 'Invalid key'}), 403
+
+    # Parse query parameters
+    date = request.args.get('date', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    session_id = request.args.get('session_id', '').strip()
+    filtered = request.args.get('filtered', 'all').strip()
+    response_format = request.args.get('format', 'html').strip().lower()
+
+    # Handle pagination
+    try:
+        limit = int(request.args.get('limit', 100))
+    except ValueError:
+        limit = 100
+
+    try:
+        offset = int(request.args.get('offset', 0))
+    except ValueError:
+        offset = 0
+
+    # Handle date parameter (overrides start_date/end_date)
+    if date:
+        if not validate_date_format(date):
+            error_msg = f'Invalid date format: {date}. Use YYMMDD, "today", or "yesterday".'
+            if response_format == 'json':
+                return jsonify({'error': error_msg}), 400
+            return render_template('dataset.html', error=error_msg, key=key, filters={})
+
+        start_date = date
+        end_date = date
+    else:
+        # Validate date formats if provided
+        if start_date and not validate_date_format(start_date):
+            error_msg = f'Invalid start_date format: {start_date}. Use YYMMDD, "today", or "yesterday".'
+            if response_format == 'json':
+                return jsonify({'error': error_msg}), 400
+            return render_template('dataset.html', error=error_msg, key=key, filters={})
+
+        if end_date and not validate_date_format(end_date):
+            error_msg = f'Invalid end_date format: {end_date}. Use YYMMDD, "today", or "yesterday".'
+            if response_format == 'json':
+                return jsonify({'error': error_msg}), 400
+            return render_template('dataset.html', error=error_msg, key=key, filters={})
+
+    # Validate filtered parameter
+    if filtered not in ['all', 'true', 'false']:
+        error_msg = 'Invalid filtered parameter. Use "all", "true", or "false".'
+        if response_format == 'json':
+            return jsonify({'error': error_msg}), 400
+        return render_template('dataset.html', error=error_msg, key=key, filters={})
+
+    # Parse log entries
+    try:
+        result = parse_log_entries(
+            log_path=QUERY_LOG_PATH,
+            start_date=start_date if start_date else None,
+            end_date=end_date if end_date else None,
+            session_id=session_id if session_id else None,
+            filtered=filtered,
+            limit=limit,
+            offset=offset
+        )
+    except Exception as e:
+        error_msg = f'Error parsing logs: {str(e)}'
+        if response_format == 'json':
+            return jsonify({'error': error_msg}), 500
+        return render_template('dataset.html', error=error_msg, key=key, filters={})
+
+    # Return JSON format if requested
+    if response_format == 'json':
+        return jsonify(result)
+
+    # Return HTML format
+    return render_template(
+        'dataset.html',
+        entries=result['entries'],
+        total=result['total'],
+        limit=result['limit'],
+        offset=result['offset'],
+        has_more=result['has_more'],
+        filters={
+            'date': date,
+            'start_date': start_date,
+            'end_date': end_date,
+            'session_id': session_id,
+            'filtered': filtered
+        },
+        key=key  # Pass key for pagination links
+    )
 
 
 if __name__ == '__main__':
