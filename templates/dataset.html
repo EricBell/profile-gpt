@@ -29,6 +29,7 @@
             margin-bottom: 2rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid #565869;
+            position: relative;
         }
 
         .header h1 {
@@ -39,6 +40,23 @@
         .header p {
             color: #b4b4c4;
             font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-to-app {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #19c37d;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .back-to-app:hover {
+            background-color: #17a86a;
         }
 
         .error-banner {
@@ -319,6 +337,7 @@
         <div class="header">
             <h1>ProfileGPT Dataset Viewer</h1>
             <p>Review conversation logs for improvement analysis</p>
+            <a href="/" class="back-to-app">← Back to App</a>
         </div>
 
         {% if error %}
