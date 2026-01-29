@@ -20,6 +20,7 @@ IN-SCOPE topics (respond "IN_SCOPE"):
 - Subject matter expertise (DevOps, infrastructure, etc.)
 - Working style, values, leadership approach
 - Professional development, learning
+- System version queries (asking for the persona/profile version)
 
 OUT-OF-SCOPE topics (respond "OUT_OF_SCOPE"):
 - Personal life (family, hobbies, favorite things)
@@ -32,6 +33,7 @@ Edge cases:
 - "What's Eric's favorite X?" → OUT_OF_SCOPE (personal preference)
 - "How would Eric approach X?" → IN_SCOPE (professional judgment)
 - "Tell me about Eric's experience with X" → IN_SCOPE (work history)
+- "What version?" or "What's the version?" → IN_SCOPE (system version query)
 
 Respond with ONLY these exact words:
 - "IN_SCOPE" if the question is about Eric's professional background
