@@ -49,6 +49,18 @@ Version format: MAJOR.MINOR.PATCH (starting at 0.1.0)
 
 Update both `version.py` and `pyproject.toml` when changing versions.
 
+## Deployment Checklist
+
+**When adding new Python modules or features, ALWAYS update these files:**
+
+1. **`Dockerfile`** - Add new `.py` modules to the COPY commands (around line 25-33)
+2. **`version.py`** and **`pyproject.toml`** - Increment version per rules above
+3. **`app.py`** - Add imports and route handlers as needed
+4. **`templates/`** - Add any new HTML templates
+5. **`static/`** - Add any new CSS/JS files
+
+**Docker deployment uses explicit file listing** - if you create a new Python module and don't add it to the Dockerfile, it won't be included in the Docker image and the app will fail to start.
+
 ## Dokploy Deployment
 
 This app is ready for deployment on Dokploy (self-hosted PaaS).
@@ -77,14 +89,3 @@ This app is ready for deployment on Dokploy (self-hosted PaaS).
 ## Guiding Document
 
 **See [Intentions.md](Intentions.md)** - This file defines the core principles that guide all development decisions for this project. The AI persona, response style, and interaction patterns described there should inform every feature and implementation choice.
-
-## Version Management
-
-Version format: MAJOR.MINOR.PATCH (starting at 0.1.0)
-
-**Incrementing rules:**
-- MINOR: Increment when completing a new feature set
-- PATCH: Increment when fixing a bug or set of bugs in one turn
-- MAJOR: Only increment when instructed by the user (resets MINOR and PATCH to 0)
-
-Update both `version.py` and `pyproject.toml` when changing versions.
