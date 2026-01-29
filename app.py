@@ -12,7 +12,7 @@ from version import __version__
 from job_vetting import sanitize_job_description, evaluate_job_description
 from query_logger import log_interaction
 from config_validator import validate_flask_secret_key, validate_admin_reset_key
-from intent_classifier import classify_intent, get_refusal_response
+from intent_classifier import classify_intent, get_refusal_response, extract_company_names
 from dataset_manager import parse_log_entries, validate_date_format
 
 load_dotenv()
@@ -50,6 +50,9 @@ ADMIN_RESET_KEY = admin_reset
 # OpenAI client (lazy initialization)
 _client = None
 
+# Company names cache (lazy initialization)
+_company_names_cache = None
+
 
 def get_openai_client():
     """Get or create OpenAI client."""
@@ -60,6 +63,14 @@ def get_openai_client():
             raise ValueError("OPENAI_API_KEY environment variable is not set")
         _client = OpenAI(api_key=api_key)
     return _client
+
+
+def get_company_names():
+    """Get cached company names from persona file."""
+    global _company_names_cache
+    if _company_names_cache is None:
+        _company_names_cache = extract_company_names(PERSONA_FILE_PATH)
+    return _company_names_cache
 
 
 def load_persona():
@@ -185,7 +196,8 @@ def chat():
     # LLM-based intent classification
     try:
         client = get_openai_client()
-        scope = classify_intent(client, user_message)
+        company_names = get_company_names()
+        scope = classify_intent(client, user_message, company_names)
 
         if scope == 'OUT_OF_SCOPE':
             # Return canned response without full conversation

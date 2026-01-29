@@ -5,11 +5,70 @@ Uses a lightweight OpenAI API call to classify user intent before
 the main conversation, saving tokens on obvious refusals.
 """
 
+import logging
 import random
+import re
 from openai import OpenAI
 
-# Classification system prompt (designed for prompt caching)
-CLASSIFICATION_SYSTEM_PROMPT = """You are a scope classifier for a professional Q&A chatbot about Eric Bell.
+
+def extract_company_names(persona_file_path: str) -> list[str]:
+    """
+    Extract company/organization names from persona.txt WORK HISTORY section.
+
+    Args:
+        persona_file_path: Path to persona.txt file
+
+    Returns:
+        List of company names (e.g., ["Polymorph Corporation", "Twitter", "Plymouth Rock Assurance"])
+    """
+    try:
+        with open(persona_file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        companies = []
+        in_work_history = False
+
+        for line in lines:
+            # Check if we're entering WORK HISTORY section
+            if '## WORK HISTORY' in line:
+                in_work_history = True
+                continue
+
+            # Check if we're leaving WORK HISTORY section (next ## heading)
+            if in_work_history and line.strip().startswith('##'):
+                break
+
+            # Extract company names: **CompanyName** (description)
+            # Look for pattern **Text** followed by (description)
+            if in_work_history and '**' in line and '(' in line:
+                match = re.search(r'\*\*([^*]+)\*\*\s*\(', line)
+                if match:
+                    company = match.group(1).strip()
+                    # Filter out job titles (they contain keywords like /, &, Architect, etc.)
+                    job_keywords = ['/', '&', 'Architect', 'Developer', 'Engineer', 'Admin', 'BA', 'Integrator']
+                    if not any(keyword in company for keyword in job_keywords):
+                        companies.append(company)
+
+        # Also add major clients mentioned in Notable Achievements section
+        # Specifically look for Veolia which is a major client
+        with open(persona_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Extract Veolia and other major clients from achievements
+        if 'Veolia' in content and 'Veolia' not in companies:
+            companies.append('Veolia')
+
+        # Deduplicate and return
+        return list(set(companies))
+
+    except Exception as e:
+        # Graceful degradation - if extraction fails, return empty list
+        logging.warning(f"Failed to extract company names from {persona_file_path}: {e}")
+        return []
+
+
+# Base classification prompt template
+_BASE_CLASSIFICATION_PROMPT = """You are a scope classifier for a professional Q&A chatbot about Eric Bell.
 
 Your task: Determine if a user's question is about Eric Bell's professional background.
 
@@ -33,13 +92,38 @@ Edge cases:
 - "What's Eric's favorite X?" → OUT_OF_SCOPE (personal preference)
 - "How would Eric approach X?" → IN_SCOPE (professional judgment)
 - "Tell me about Eric's experience with X" → IN_SCOPE (work history)
-- "What version?" or "What's the version?" → IN_SCOPE (system version query)
+- "What version?" or "What's the version?" → IN_SCOPE (system version query)"""
+
+
+def build_classification_prompt(company_names: list[str]) -> str:
+    """
+    Build classification system prompt with company context.
+
+    Args:
+        company_names: List of companies Eric worked for/with
+
+    Returns:
+        System prompt string with company examples
+    """
+    prompt = _BASE_CLASSIFICATION_PROMPT
+
+    # Add company names section if available
+    if company_names:
+        prompt += "\n\nKnown companies/organizations Eric worked for (always IN_SCOPE):\n"
+        for company in sorted(company_names):
+            prompt += f"- {company}\n"
+        prompt += "\nAny question mentioning these companies is IN_SCOPE."
+
+    # Add final instructions
+    prompt += """
 
 Respond with ONLY these exact words:
 - "IN_SCOPE" if the question is about Eric's professional background
 - "OUT_OF_SCOPE" if it's anything else
 
 Do not explain. Do not add punctuation. Just the classification."""
+
+    return prompt
 
 # Rotating refusal responses (professional but approachable)
 REFUSAL_RESPONSES = [
@@ -53,13 +137,14 @@ REFUSAL_RESPONSES = [
 ]
 
 
-def classify_intent(client: OpenAI, user_message: str) -> str:
+def classify_intent(client: OpenAI, user_message: str, company_names: list[str] = None) -> str:
     """
     Classify user intent using a lightweight LLM call.
 
     Args:
         client: OpenAI client instance
         user_message: User's question
+        company_names: List of companies Eric worked for (for context)
 
     Returns:
         "IN_SCOPE" or "OUT_OF_SCOPE"
@@ -67,10 +152,15 @@ def classify_intent(client: OpenAI, user_message: str) -> str:
     Raises:
         Exception: If classification fails (caller should handle gracefully)
     """
+    # Build system prompt with company context
+    if company_names is None:
+        company_names = []
+    system_prompt = build_classification_prompt(company_names)
+
     response = client.chat.completions.create(
         model='gpt-4o-mini',
         messages=[
-            {'role': 'system', 'content': CLASSIFICATION_SYSTEM_PROMPT},
+            {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_message}
         ],
         max_tokens=10,
