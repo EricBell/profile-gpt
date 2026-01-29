@@ -82,11 +82,12 @@ IN-SCOPE topics (respond "IN_SCOPE"):
 - Working style, values, leadership approach
 - Professional development, learning
 - System version queries (asking for the persona/profile version)
+- How to use this interface/app (e.g., "How do I use this?", "What is this?", "How does this work?")
 
 OUT-OF-SCOPE topics (respond "OUT_OF_SCOPE"):
 - Personal life (family, hobbies, favorite things)
 - Unrelated topics (weather, sports, politics, current events)
-- Generic AI questions ("what are you", "who made you")
+- Generic AI questions about the AI itself ("what model are you", "who made you", "what are your capabilities")
 - Off-topic requests (math problems, code generation, translations)
 - Hypothetical scenarios not about Eric's experience
 
