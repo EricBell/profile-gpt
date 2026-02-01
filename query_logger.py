@@ -10,7 +10,8 @@ def log_interaction(
     session_id: str,
     query: str,
     response: str,
-    filtered_pre_llm: bool = False
+    filtered_pre_llm: bool = False,
+    scope: str = 'IN_SCOPE'
 ) -> None:
     """Log a chat interaction in NDJSON format.
 
@@ -20,6 +21,7 @@ def log_interaction(
         query: User's query text
         response: Assistant's response text
         filtered_pre_llm: Whether query was filtered by intent classifier
+        scope: Query scope classification ('IN_SCOPE' or 'OUT_OF_SCOPE')
     """
     try:
         # Ensure log directory exists
@@ -35,7 +37,8 @@ def log_interaction(
             "timestamp": datetime.now().isoformat(),
             "query": query,
             "response": response,
-            "filtered_pre_llm": filtered_pre_llm
+            "filtered_pre_llm": filtered_pre_llm,
+            "scope": scope
         }
 
         # Append NDJSON line

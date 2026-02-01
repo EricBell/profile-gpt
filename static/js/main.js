@@ -11,7 +11,7 @@
     // Get config from data attributes
     const config = {
         maxQueries: parseInt(document.body.dataset.maxQueries, 10),
-        queryCount: parseInt(document.body.dataset.queryCount, 10)
+        totalTurns: parseInt(document.body.dataset.totalTurns, 10)
     };
 
     // View elements
@@ -23,7 +23,6 @@
     const chatContainer = document.getElementById('chat-container');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
-    const queryCountEl = document.getElementById('query-count');
     const errorContainer = document.getElementById('error-container');
     const welcome = document.getElementById('welcome');
 
@@ -133,28 +132,23 @@
 
             if (response.ok) {
                 addMessage('assistant', data.response);
-                queryCountEl.textContent = data.query_count;
 
-                // Update max queries if changed (extension approved)
-                if (data.max_queries) {
-                    config.maxQueries = data.max_queries;
-                    document.body.dataset.maxQueries = data.max_queries;
+                // Update total turns in config
+                if (data.total_turns !== undefined) {
+                    config.totalTurns = data.total_turns;
+                    document.body.dataset.totalTurns = data.total_turns;
                 }
 
-                if (data.query_count >= data.max_queries) {
-                    disableInput('Query limit reached for this session');
+                // Check if limit reached
+                if (data.total_turns >= data.max_queries) {
+                    disableInput('Session limit reached');
                 }
             } else if (response.status === 429) {
-                if (data.extension_requested) {
-                    // Show success message for extension request
-                    showError(data.message);
-                } else {
-                    // Show regular limit message
-                    showError(data.message);
-                }
+                // Show limit message
+                showError(data.message);
 
-                // Don't disable input immediately if extension was requested
-                if (!data.extension_requested) {
+                // Don't disable input immediately if reset was just requested
+                if (!data.reset_requested) {
                     disableInput(data.message);
                 }
             } else {
@@ -320,7 +314,7 @@
     });
 
     // Check initial status
-    if (config.queryCount >= config.maxQueries) {
-        disableInput('Query limit reached for this session');
+    if (config.totalTurns >= config.maxQueries) {
+        disableInput('Session limit reached');
     }
 })();

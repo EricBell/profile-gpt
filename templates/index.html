@@ -7,7 +7,7 @@
     <title>Ask Eric</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body data-max-queries="{{ max_queries }}" data-query-count="{{ query_count }}">
+<body data-max-queries="{{ max_queries }}" data-total-turns="{{ total_turns }}">
     <!-- Mode Selection View -->
     <div class="mode-selection" id="mode-selection">
         <h2>Ask Eric</h2>
@@ -36,9 +36,6 @@
         <div class="header">
             <button class="back-button" id="chat-back-btn">Back</button>
             <h1>Chat with Eric</h1>
-            <div class="status-bar">
-                <span id="query-status">Questions: <span id="query-count">{{ query_count }}</span> / {{ max_queries }}</span>
-            </div>
         </div>
 
         <div class="chat-container" id="chat-container">

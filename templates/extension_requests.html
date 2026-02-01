@@ -361,8 +361,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Extension Request Manager</h1>
-            <p>Review and approve query limit extension requests</p>
+            <h1>Reset Request Manager</h1>
+            <p>Review and approve session reset requests</p>
             <a href="/" class="back-to-app">← Back to App</a>
         </div>
 
@@ -434,29 +434,32 @@
         {% else %}
         <div class="empty-state">
             <h2>No Requests Found</h2>
-            <p>No extension requests match the selected filter.</p>
+            <p>No reset requests match the selected filter.</p>
         </div>
         {% endif %}
 
         <div class="footer">
-            ProfileGPT Extension Request Manager
+            ProfileGPT Reset Request Manager
         </div>
     </div>
 
     <!-- Approve Modal -->
     <div id="approve-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Approve Extension Request</div>
+            <div class="modal-header">Approve Reset Request</div>
             <div class="modal-body">
                 <p style="margin-bottom: 1rem; color: #b4b4c4; font-size: 0.875rem;">
-                    Approving request for: <strong id="modal-email"></strong>
+                    Approving reset request for: <strong id="modal-email"></strong>
                 </p>
-                <label class="modal-label">Number of queries to grant:</label>
-                <input type="number" id="queries-input" class="modal-input" value="10" min="1" max="100">
+                <p style="margin-bottom: 1rem; color: #b4b4c4; font-size: 0.875rem;">
+                    This will clear all counters (in_scope_count, out_of_scope_count, total_turns) for this session.
+                </p>
+                <label class="modal-label">Number of queries to grant (legacy field, ignored):</label>
+                <input type="number" id="queries-input" class="modal-input" value="10" min="1" max="100" disabled>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-approve" onclick="confirmApproval()">Approve</button>
+                <button class="btn btn-approve" onclick="confirmApproval()">Approve Reset</button>
             </div>
         </div>
     </div>
@@ -505,7 +508,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    showNotification(`Extension approved: ${queriesGranted} queries granted`, false);
+                    showNotification('Reset approved - session will be cleared on next request', false);
                     closeModal();
                     setTimeout(() => {
                         window.location.reload();
@@ -520,7 +523,7 @@
         }
 
         function denyRequest(requestId) {
-            if (!confirm('Are you sure you want to deny this extension request?')) {
+            if (!confirm('Are you sure you want to deny this reset request?')) {
                 return;
             }
 
@@ -537,7 +540,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    showNotification('Extension request denied', false);
+                    showNotification('Reset request denied', false);
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);

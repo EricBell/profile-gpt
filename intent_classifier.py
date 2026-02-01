@@ -193,3 +193,22 @@ def get_refusal_response() -> str:
         Randomly selected refusal message
     """
     return random.choice(REFUSAL_RESPONSES)
+
+
+def get_warning_response(current_count: int, cutoff: int) -> str:
+    """
+    Generate warning when approaching OUT_OF_SCOPE cutoff.
+
+    Args:
+        current_count: Current out-of-scope question count
+        cutoff: Maximum allowed out-of-scope questions
+
+    Returns:
+        Warning message string
+    """
+    remaining = cutoff - current_count
+
+    if remaining <= 0:
+        return "You have asked too many off-topic questions. This session has been limited."
+    else:
+        return "You're straying away from Eric's professional life too much. I'll cut you off if you continue."

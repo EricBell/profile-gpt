@@ -107,25 +107,51 @@ This app is ready for deployment on Dokploy (self-hosted PaaS).
 
 **Health Check:** The app exposes `/health` endpoint for container monitoring.
 
-## Query Limit Extension Requests
+## Intention Monitoring System
 
-The app includes a system for users to request additional queries when they hit the session limit:
+ProfileGPT uses intention-based monitoring to ensure quality interactions and prevent runaway token usage:
+
+**Session Limits:**
+- Total session limit: 50 questions (prevents runaway token usage)
+- OUT_OF_SCOPE query limits: Warning at 5, cutoff at 10 (prevents abuse)
+- IN_SCOPE queries: Limited only by total session limit
+
+**Thresholds:**
+- Total session limit: 50 questions
+- OUT_OF_SCOPE warning: 5 questions
+- OUT_OF_SCOPE cutoff: 10 questions
+
+**User Experience:**
+- Users who stay on-topic can ask up to 50 professional questions
+- Off-topic questions receive polite refusal messages
+- Warning message at 5 off-topic questions: "You're straying away from Eric's professional life too much. I'll cut you off if you continue."
+- At 10 off-topic questions OR 50 total questions: Session limited, user can request reset via email
+
+**Reset Request System:**
+
+If a legitimate user hits any limit, they can submit their email to request a manual session reset. Admin reviews and approves, which clears all counters and gives them a fresh session.
 
 1. **User Flow:**
-   - User hits query limit (20/20 by default)
-   - System prompts: "To request more questions, send a message with your email address"
+   - User hits limit (total session or out-of-scope cutoff)
+   - System prompts: "To request a session reset, send a message with your email address"
    - User types email in chat
-   - System detects email, creates extension request, sends notification to admin
+   - System detects email, creates reset request, sends notification to admin
    - User receives confirmation message
 
 2. **Admin Workflow:**
-   - Eric receives email notification when extension request is created
+   - Eric receives email notification when reset request is created
    - Admin visits `/extension-requests?key=YOUR_KEY` to review pending requests
-   - Admin approves/denies requests and specifies number of queries to grant (default: 10)
-   - Approved sessions automatically get increased query limits
+   - Admin approves/denies reset requests
+   - Approved sessions get all counters cleared (in_scope_count, out_of_scope_count, total_turns reset to 0)
 
 3. **Required Environment Variables:**
    ```bash
+   # Session limits
+   MAX_QUERIES_PER_SESSION=50
+   OUT_OF_SCOPE_WARNING_THRESHOLD=5
+   OUT_OF_SCOPE_CUTOFF_THRESHOLD=10
+
+   # Email notifications
    ADMIN_EMAIL=eric@example.com
    APP_URL=https://your-app-domain.com
    SMTP_HOST=smtp.gmail.com
@@ -136,12 +162,13 @@ The app includes a system for users to request additional queries when they hit 
    ```
 
 4. **Key Files:**
+   - `intent_classifier.py` - LLM-based intent classification and warning messages
    - `email_detector.py` - Email extraction/validation
-   - `extension_manager.py` - Request management (CRUD)
+   - `extension_manager.py` - Reset request management (CRUD)
    - `email_notifier.py` - SMTP email notifications
    - `templates/extension_requests.html` - Admin UI
-   - `logs/extension_requests.ndjson` - Request log
-   - `logs/approved_extensions.json` - Session approval tracking
+   - `logs/extension_requests.ndjson` - Reset request log
+   - `logs/approved_resets.json` - Session reset approval tracking
 
 ## Guiding Document
 

@@ -16,7 +16,7 @@ from version import __version__
 from job_vetting import sanitize_job_description, evaluate_job_description
 from query_logger import log_interaction
 from config_validator import validate_flask_secret_key, validate_admin_reset_key
-from intent_classifier import classify_intent, get_refusal_response, extract_company_names
+from intent_classifier import classify_intent, get_refusal_response, get_warning_response, extract_company_names
 from dataset_manager import parse_log_entries, validate_date_format
 from email_detector import extract_email
 from extension_manager import (
@@ -50,7 +50,9 @@ app = Flask(__name__)
 app.secret_key = flask_secret
 
 # Configuration
-MAX_QUERIES_PER_SESSION = int(os.environ.get('MAX_QUERIES_PER_SESSION', 20))
+MAX_QUERIES_PER_SESSION = int(os.environ.get('MAX_QUERIES_PER_SESSION', 50))
+OUT_OF_SCOPE_WARNING_THRESHOLD = int(os.environ.get('OUT_OF_SCOPE_WARNING_THRESHOLD', 5))
+OUT_OF_SCOPE_CUTOFF_THRESHOLD = int(os.environ.get('OUT_OF_SCOPE_CUTOFF_THRESHOLD', 10))
 MAX_QUERY_LENGTH = int(os.environ.get('MAX_QUERY_LENGTH', 500))
 MAX_JOB_DESCRIPTION_LENGTH = int(os.environ.get('MAX_JOB_DESCRIPTION_LENGTH', 5000))
 PERSONA_FILE_PATH = os.environ.get('PERSONA_FILE_PATH', './persona.txt')
@@ -120,16 +122,60 @@ def sanitize_input(user_input):
     return user_input.strip()
 
 
-def get_query_count():
-    """Get current query count from session."""
-    return session.get('query_count', 0)
+def get_in_scope_count():
+    """Get current in-scope query count from session."""
+    # Auto-migrate old sessions
+    if 'query_count' in session and 'in_scope_count' not in session:
+        session['in_scope_count'] = session['query_count']
+        session['out_of_scope_count'] = 0
+        session['total_turns'] = session['query_count']
+    return session.get('in_scope_count', 0)
 
 
-def increment_query_count():
-    """Increment and return query count."""
-    count = get_query_count() + 1
-    session['query_count'] = count
-    return count
+def get_out_of_scope_count():
+    """Get current out-of-scope query count from session."""
+    # Auto-migrate old sessions
+    if 'query_count' in session and 'out_of_scope_count' not in session:
+        session['in_scope_count'] = session['query_count']
+        session['out_of_scope_count'] = 0
+        session['total_turns'] = session['query_count']
+    return session.get('out_of_scope_count', 0)
+
+
+def get_total_turns():
+    """Get total conversation turns from session."""
+    # Auto-migrate old sessions
+    if 'query_count' in session and 'total_turns' not in session:
+        session['in_scope_count'] = session['query_count']
+        session['out_of_scope_count'] = 0
+        session['total_turns'] = session['query_count']
+    return session.get('total_turns', 0)
+
+
+def increment_scope_count(scope: str):
+    """Increment scope count and total turns.
+
+    Args:
+        scope: 'IN_SCOPE' or 'OUT_OF_SCOPE'
+
+    Returns:
+        Tuple of (scope_count, total_turns)
+    """
+    # Ensure migration happened
+    get_total_turns()
+
+    if scope == 'IN_SCOPE':
+        count = get_in_scope_count() + 1
+        session['in_scope_count'] = count
+    else:  # OUT_OF_SCOPE
+        count = get_out_of_scope_count() + 1
+        session['out_of_scope_count'] = count
+
+    # Always increment total turns
+    total = get_total_turns() + 1
+    session['total_turns'] = total
+
+    return count, total
 
 
 def get_conversation_history():
@@ -153,27 +199,35 @@ def get_session_id():
 
 
 def get_max_queries_for_session():
-    """Get max queries for current session (base + approved extensions)."""
-    base_max = MAX_QUERIES_PER_SESSION
+    """Get max queries for current session (always returns base limit)."""
+    return MAX_QUERIES_PER_SESSION
 
-    # Check if this session has approved extension
+
+def check_and_apply_reset():
+    """Check if session has approved reset and apply it."""
     session_id = get_session_id()
-    approvals_file = os.path.join(QUERY_LOG_PATH, 'approved_extensions.json')
+    resets_file = os.path.join(QUERY_LOG_PATH, 'approved_resets.json')
 
-    if os.path.exists(approvals_file):
+    if os.path.exists(resets_file):
         try:
-            with open(approvals_file, 'r', encoding='utf-8') as f:
-                approvals = json.load(f)
+            with open(resets_file, 'r', encoding='utf-8') as f:
+                resets = json.load(f)
 
-            if session_id in approvals:
-                # Extension approved, add granted queries
-                granted = approvals[session_id]['queries_granted']
-                return base_max + granted
-        except Exception:
-            # If file is corrupted, just return base max
-            pass
+            if session_id in resets and not session.get('reset_applied'):
+                # Reset ALL counters - give fresh session
+                session['in_scope_count'] = 0
+                session['out_of_scope_count'] = 0
+                session['total_turns'] = 0
+                session['reset_applied'] = True
+                session['reset_requested'] = False  # Clear the flag
 
-    return base_max
+                # Remove from resets file (one-time use)
+                del resets[session_id]
+                with open(resets_file, 'w', encoding='utf-8') as f:
+                    json.dump(resets, f, indent=2)
+        except Exception as e:
+            # Log error but don't crash
+            print(f"Error applying reset: {e}", file=sys.stderr)
 
 
 @app.route('/')
@@ -181,7 +235,9 @@ def index():
     """Render the chat interface."""
     max_queries = get_max_queries_for_session()
     return render_template('index.html',
-                         query_count=get_query_count(),
+                         in_scope_count=get_in_scope_count(),
+                         out_of_scope_count=get_out_of_scope_count(),
+                         total_turns=get_total_turns(),
                          max_queries=max_queries,
                          max_query_length=MAX_QUERY_LENGTH,
                          max_job_description_length=MAX_JOB_DESCRIPTION_LENGTH,
@@ -197,22 +253,48 @@ def health():
 @app.route('/chat', methods=['POST'])
 def chat():
     """Handle chat messages."""
-    # Check query limit (with extension support)
-    current_count = get_query_count()
+    # Check for approved reset and apply if needed
+    check_and_apply_reset()
+
+    # Get current counts
+    total_turns = get_total_turns()
+    out_of_scope_count = get_out_of_scope_count()
     max_queries = get_max_queries_for_session()
 
-    if current_count >= max_queries:
-        # Get and validate input first (to check for email)
+    # Check total session limit first
+    if total_turns >= max_queries:
+        limit_message = f'You have reached the maximum of {max_queries} questions for this session. To request a session reset, send a message with your email address.'
+        limit_type = 'session_limit'
+    # Check out-of-scope cutoff
+    elif out_of_scope_count >= OUT_OF_SCOPE_CUTOFF_THRESHOLD:
+        limit_message = 'You have asked too many off-topic questions. To request a reset, send a message with your email address.'
+        limit_type = 'out_of_scope_cutoff'
+    else:
+        limit_message = None
+        limit_type = None
+
+    # If any limit reached, handle reset request
+    if limit_message:
+        # Check if reset already requested
+        if session.get('reset_requested'):
+            return jsonify({
+                'error': limit_type,
+                'message': 'Your reset request is pending review. Please check back later.',
+                'total_turns': total_turns,
+                'out_of_scope_count': out_of_scope_count
+            }), 429
+
+        # Get and validate input (to check for email)
         data = request.get_json()
         if data and 'message' in data:
             user_message = data.get('message', '').strip()
 
-            # Check if user is submitting email for extension request
+            # Check if user is submitting email for reset request
             email = extract_email(user_message)
 
             if email and not has_pending_request(QUERY_LOG_PATH, get_session_id()):
-                # Create extension request
-                ext_request = create_request(QUERY_LOG_PATH, get_session_id(), email)
+                # Create reset request
+                reset_request = create_request(QUERY_LOG_PATH, get_session_id(), email)
 
                 # Send notification to Eric
                 smtp_config = {
@@ -230,7 +312,7 @@ def chat():
                 # Send email notification (best-effort, don't fail if email fails)
                 try:
                     send_extension_request_notification(
-                        ext_request.request_id,
+                        reset_request.request_id,
                         get_session_id(),
                         email,
                         admin_email,
@@ -242,28 +324,23 @@ def chat():
                     print(f"Email notification failed: {e}", file=sys.stderr)
 
                 # Mark request in session to prevent re-submission
-                session['extension_requested'] = True
-                session['extension_request_id'] = ext_request.request_id
+                session['reset_requested'] = True
+                session['reset_request_id'] = reset_request.request_id
 
                 return jsonify({
-                    'error': 'limit_reached',
-                    'extension_requested': True,
-                    'message': 'Extension request received! We\'ll review your request and may extend your session. Check back shortly.',
-                    'query_count': current_count,
-                    'max_queries': max_queries
+                    'error': limit_type,
+                    'reset_requested': True,
+                    'message': 'Reset request received! We\'ll review your request and may reset your session.',
+                    'total_turns': total_turns,
+                    'out_of_scope_count': out_of_scope_count
                 }), 429
 
         # Default limit reached message (no email detected or already requested)
-        if session.get('extension_requested'):
-            message = 'Your extension request is pending review. Please check back later.'
-        else:
-            message = f'You have reached the maximum of {max_queries} questions for this session. To request more questions, send a message with your email address.'
-
         return jsonify({
-            'error': 'limit_reached',
-            'message': message,
-            'query_count': current_count,
-            'max_queries': max_queries
+            'error': limit_type,
+            'message': limit_message,
+            'total_turns': total_turns,
+            'out_of_scope_count': out_of_scope_count
         }), 429
 
     # Get and validate input
@@ -294,8 +371,14 @@ def chat():
         scope = classify_intent(client, user_message, company_names)
 
         if scope == 'OUT_OF_SCOPE':
-            # Return canned response without full conversation
-            refusal_message = get_refusal_response()
+            # Increment out-of-scope count
+            out_of_scope_count, total_turns = increment_scope_count('OUT_OF_SCOPE')
+
+            # Check if warning threshold reached
+            if out_of_scope_count >= OUT_OF_SCOPE_WARNING_THRESHOLD:
+                refusal_message = get_warning_response(out_of_scope_count, OUT_OF_SCOPE_CUTOFF_THRESHOLD)
+            else:
+                refusal_message = get_refusal_response()
 
             # Log the filtered interaction
             log_interaction(
@@ -303,18 +386,17 @@ def chat():
                 get_session_id(),
                 user_message,
                 refusal_message,
-                filtered_pre_llm=True
+                filtered_pre_llm=True,
+                scope='OUT_OF_SCOPE'
             )
 
-            # Increment query count (prevent abuse)
-            new_count = increment_query_count()
-
-            max_queries = get_max_queries_for_session()
             return jsonify({
                 'response': refusal_message,
-                'query_count': new_count,
+                'in_scope_count': get_in_scope_count(),
+                'out_of_scope_count': out_of_scope_count,
+                'total_turns': total_turns,
                 'max_queries': max_queries,
-                'queries_remaining': max_queries - new_count,
+                'queries_remaining': max_queries - total_turns,
                 'filtered_pre_llm': True
             })
 
@@ -346,27 +428,29 @@ def chat():
 
         assistant_message = response.choices[0].message.content
 
+        # Increment in-scope count
+        in_scope_count, total_turns = increment_scope_count('IN_SCOPE')
+
         # Log the interaction
         log_interaction(
             QUERY_LOG_PATH,
             get_session_id(),
             user_message,
             assistant_message,
-            filtered_pre_llm=False
+            filtered_pre_llm=False,
+            scope='IN_SCOPE'
         )
 
         # Add assistant response to history
         add_to_conversation('assistant', assistant_message)
 
-        # Increment query count
-        new_count = increment_query_count()
-
-        max_queries = get_max_queries_for_session()
         return jsonify({
             'response': assistant_message,
-            'query_count': new_count,
+            'in_scope_count': in_scope_count,
+            'out_of_scope_count': get_out_of_scope_count(),
+            'total_turns': total_turns,
             'max_queries': max_queries,
-            'queries_remaining': max_queries - new_count
+            'queries_remaining': max_queries - total_turns
         })
 
     except Exception as e:
@@ -413,12 +497,19 @@ def vet():
 @app.route('/status')
 def status():
     """Get current session status."""
+    total_turns = get_total_turns()
+    out_of_scope_count = get_out_of_scope_count()
     max_queries = get_max_queries_for_session()
-    query_count = get_query_count()
+
     return jsonify({
-        'query_count': query_count,
+        'in_scope_count': get_in_scope_count(),
+        'out_of_scope_count': out_of_scope_count,
+        'total_turns': total_turns,
         'max_queries': max_queries,
-        'queries_remaining': max_queries - query_count,
+        'queries_remaining': max_queries - total_turns,
+        'out_of_scope_warning_threshold': OUT_OF_SCOPE_WARNING_THRESHOLD,
+        'out_of_scope_cutoff_threshold': OUT_OF_SCOPE_CUTOFF_THRESHOLD,
+        'out_of_scope_remaining': OUT_OF_SCOPE_CUTOFF_THRESHOLD - out_of_scope_count,
         'version': __version__
     })
 
@@ -434,13 +525,17 @@ def reset():
         return jsonify({'error': 'Invalid key'}), 403
 
     # Clear session data
-    old_count = get_query_count()
+    old_in_scope = get_in_scope_count()
+    old_out_of_scope = get_out_of_scope_count()
+    old_total = get_total_turns()
     session.clear()
 
     return jsonify({
         'status': 'success',
         'message': 'Session reset successfully',
-        'previous_query_count': old_count
+        'previous_in_scope_count': old_in_scope,
+        'previous_out_of_scope_count': old_out_of_scope,
+        'previous_total_turns': old_total
     })
 
 
@@ -572,9 +667,9 @@ def extension_requests():
 
 @app.route('/approve-extension', methods=['POST'])
 def approve_extension():
-    """Approve an extension request and grant queries to session."""
+    """Approve a reset request and clear session counters."""
     if not ADMIN_RESET_KEY:
-        return jsonify({'error': 'Extension approval not configured'}), 403
+        return jsonify({'error': 'Reset approval not configured'}), 403
 
     data = request.get_json()
     key = data.get('key', '')
@@ -582,46 +677,46 @@ def approve_extension():
         return jsonify({'error': 'Invalid key'}), 403
 
     request_id = data.get('request_id')
-    queries_granted = int(data.get('queries_granted', 10))
+    queries_granted = int(data.get('queries_granted', 10))  # Keep for backward compat, but ignored
 
     # Get request details
-    ext_request = get_request_by_id(QUERY_LOG_PATH, request_id)
-    if not ext_request:
+    reset_request = get_request_by_id(QUERY_LOG_PATH, request_id)
+    if not reset_request:
         return jsonify({'error': 'Request not found'}), 404
 
-    # Mark as approved
+    # Mark as approved in request log
     approve_request(QUERY_LOG_PATH, request_id, queries_granted)
 
     # Store approval in separate tracking file for session lookup
-    approvals_file = os.path.join(QUERY_LOG_PATH, 'approved_extensions.json')
+    resets_file = os.path.join(QUERY_LOG_PATH, 'approved_resets.json')
     os.makedirs(QUERY_LOG_PATH, exist_ok=True)
 
-    # Load existing approvals
-    if os.path.exists(approvals_file):
+    # Load existing resets
+    if os.path.exists(resets_file):
         try:
-            with open(approvals_file, 'r', encoding='utf-8') as f:
-                approvals = json.load(f)
+            with open(resets_file, 'r', encoding='utf-8') as f:
+                resets = json.load(f)
         except Exception:
-            approvals = {}
+            resets = {}
     else:
-        approvals = {}
+        resets = {}
 
-    # Add approval (keyed by session_id)
-    approvals[ext_request.session_id] = {
-        'queries_granted': queries_granted,
+    # Add reset approval (keyed by session_id)
+    resets[reset_request.session_id] = {
+        'reset_approved': True,
         'approved_at': datetime.now().isoformat(),
         'request_id': request_id,
-        'email': ext_request.email
+        'email': reset_request.email
     }
 
     # Save
-    with open(approvals_file, 'w', encoding='utf-8') as f:
-        json.dump(approvals, f, indent=2)
+    with open(resets_file, 'w', encoding='utf-8') as f:
+        json.dump(resets, f, indent=2)
 
     return jsonify({
         'status': 'success',
-        'message': f'Extension approved: {queries_granted} additional queries granted',
-        'session_id': ext_request.session_id
+        'message': 'Reset approved - session will be cleared on next request',
+        'session_id': reset_request.session_id
     })
 
 
