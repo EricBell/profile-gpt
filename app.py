@@ -272,6 +272,7 @@ def check_and_apply_reset():
 def index():
     """Render the chat interface."""
     max_queries = get_max_queries_for_session()
+    admin_email = os.environ.get('ADMIN_EMAIL', 'contact@example.com')
     return render_template('index.html',
                          in_scope_count=get_in_scope_count(),
                          out_of_scope_count=get_out_of_scope_count(),
@@ -279,7 +280,8 @@ def index():
                          max_queries=max_queries,
                          max_query_length=MAX_QUERY_LENGTH,
                          max_job_description_length=MAX_JOB_DESCRIPTION_LENGTH,
-                         version=__version__)
+                         version=__version__,
+                         admin_email=admin_email)
 
 
 @app.route('/health')

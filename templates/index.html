@@ -159,7 +159,12 @@
 
     <!-- Footer -->
     <div class="footer">
-        ProfileGPT v{{ version }}
+        <div class="footer-content">
+            <span>ProfileGPT v{{ version }}</span>
+            <span class="footer-separator">|</span>
+            <a href="mailto:{{ admin_email }}?subject=Question%20about%20Eric%20Bell"
+               class="footer-link">Email Eric</a>
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

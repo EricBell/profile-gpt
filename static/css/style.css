@@ -610,6 +610,28 @@ body {
     border-top: 1px solid #565869;
 }
 
+.footer-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.footer-separator {
+    color: #565869;
+}
+
+.footer-link {
+    color: #19c37d;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-link:hover {
+    color: #1a9d6a;
+    text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
     .mode-buttons {
@@ -635,5 +657,15 @@ body {
 
     .suggestion-button {
         padding: 0.875rem 1rem;
+    }
+
+    /* Stack footer vertically on mobile */
+    .footer-content {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .footer-separator {
+        display: none;
     }
 }
