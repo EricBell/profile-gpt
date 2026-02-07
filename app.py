@@ -975,9 +975,45 @@ def usage_api():
         )
 
     except Exception as e:
-        error_msg = f'Error fetching usage data: {str(e)}'
+        error_str = str(e)
+
+        # Check for permission error
+        if 'insufficient permissions' in error_str.lower() or 'api.usage.read' in error_str:
+            error_msg = """
+            <strong>OpenAI Usage API Access Required</strong><br><br>
+            Your API key doesn't have access to the OpenAI Usage API. This feature requires:<br>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>Organization-level API key (not personal API key)</li>
+                <li>The <code>api.usage.read</code> scope enabled</li>
+                <li>Proper role permissions in your OpenAI organization</li>
+            </ul>
+            <br>
+            <strong>How to enable:</strong><br>
+            <ol style="margin-top: 10px; margin-left: 20px;">
+                <li>Go to <a href="https://platform.openai.com/settings/organization/general" target="_blank">OpenAI Organization Settings</a></li>
+                <li>Check your role (Admin or Owner required for Usage API)</li>
+                <li>Create a new API key with usage permissions</li>
+            </ol>
+            <br>
+            <em>Note: Your local usage tracking still works perfectly without this. This feature is optional for comparing with OpenAI's official data.</em>
+            """
+        elif '404' in error_str:
+            error_msg = """
+            <strong>OpenAI Usage API Not Available</strong><br><br>
+            The Usage API endpoint returned a 404 error. This typically means:<br>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>Your account doesn't have organization-level access</li>
+                <li>The Usage API is not available for your plan type</li>
+                <li>Your API key is restricted or personal-use only</li>
+            </ul>
+            <br>
+            <em>Your local usage tracking continues to work independently.</em>
+            """
+        else:
+            error_msg = f'Error fetching usage data: {error_str}'
+
         if response_format == 'json':
-            return jsonify({'error': error_msg}), 500
+            return jsonify({'error': error_str}), 500
         return render_template('usage_api.html', error=error_msg, key=key, filters={
             'start_date': start_date,
             'end_date': end_date
