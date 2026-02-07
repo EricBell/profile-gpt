@@ -903,11 +903,11 @@ def usage_stats():
         return render_template('usage_stats.html', error=error_msg, key=key, filters={})
 
 
-@app.route('/usage-reconciliation')
-def usage_reconciliation():
-    """Admin endpoint to reconcile local usage with OpenAI Usage API. Requires ADMIN_RESET_KEY."""
+@app.route('/usage-api')
+def usage_api():
+    """Admin endpoint to compare local usage with OpenAI Usage API. Requires ADMIN_RESET_KEY."""
     if not ADMIN_RESET_KEY:
-        return jsonify({'error': 'Usage reconciliation endpoint not configured'}), 403
+        return jsonify({'error': 'Usage API endpoint not configured'}), 403
 
     key = request.args.get('key', '')
     if key != ADMIN_RESET_KEY:
@@ -963,7 +963,7 @@ def usage_reconciliation():
 
         # Return HTML format
         return render_template(
-            'usage_reconciliation.html',
+            'usage_api.html',
             local_stats=local_stats,
             openai_stats=openai_stats,
             comparison=comparison,
@@ -978,7 +978,7 @@ def usage_reconciliation():
         error_msg = f'Error fetching usage data: {str(e)}'
         if response_format == 'json':
             return jsonify({'error': error_msg}), 500
-        return render_template('usage_reconciliation.html', error=error_msg, key=key, filters={
+        return render_template('usage_api.html', error=error_msg, key=key, filters={
             'start_date': start_date,
             'end_date': end_date
         })

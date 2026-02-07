@@ -141,7 +141,7 @@ The `persona.txt` file contains system instructions that define how the AI respo
 | `/status` | GET | Session status (query count, etc.) |
 | `/reset?key=XXX` | GET | Admin: reset session (requires `ADMIN_RESET_KEY`) |
 | `/usage-stats?key=XXX` | GET | Admin: view usage statistics and costs (requires `ADMIN_RESET_KEY`) |
-| `/usage-reconciliation?key=XXX` | GET | Admin: reconcile local usage with OpenAI Usage API (requires `ADMIN_RESET_KEY`) |
+| `/usage-api?key=XXX` | GET | Admin: compare local usage with OpenAI Usage API (requires `ADMIN_RESET_KEY`) |
 | `/dataset?key=XXX` | GET | Admin: view conversation logs (requires `ADMIN_RESET_KEY`) |
 | `/extension-requests?key=XXX` | GET | Admin: manage session reset requests (requires `ADMIN_RESET_KEY`) |
 

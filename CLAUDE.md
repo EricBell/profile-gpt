@@ -193,7 +193,7 @@ ProfileGPT automatically tracks OpenAI API token usage and costs for all API cal
   - Filter by date range or session ID
   - Export data as JSON with `?format=json`
 
-- **Usage Reconciliation** (`/usage-reconciliation?key=YOUR_ADMIN_KEY`):
+- **Usage API Comparison** (`/usage-api?key=YOUR_ADMIN_KEY`):
   - Compare local tracking with OpenAI's official Usage API data
   - Verify accuracy of local tracking
   - Identify discrepancies in token counts or costs

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usage Reconciliation - ProfileGPT</title>
+    <title>Usage API Comparison - ProfileGPT</title>
     <style>
         * {
             margin: 0;
@@ -282,7 +282,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔄 Usage Reconciliation</h1>
+            <h1>🔄 Usage API Comparison</h1>
             <p class="subtitle">Compare local usage tracking with OpenAI's official Usage API data</p>
             <div class="nav-links">
                 <a href="/usage-stats?key={{ key }}">← Back to Usage Stats</a>
@@ -298,7 +298,7 @@
 
         <div class="filters">
             <h2>Date Range</h2>
-            <form method="GET" action="/usage-reconciliation">
+            <form method="GET" action="/usage-api">
                 <input type="hidden" name="key" value="{{ key }}">
                 <div class="filter-form">
                     <div class="form-group">

@@ -84,10 +84,10 @@ When you visit the reconciliation dashboard:
 }
 ```
 
-## Accessing the Reconciliation Dashboard
+## Accessing the Usage API Dashboard
 
 ### URL
-`https://your-domain.com/usage-reconciliation?key=YOUR_ADMIN_KEY`
+`https://your-domain.com/usage-api?key=YOUR_ADMIN_KEY`
 
 ### Required Environment Variables
 - `ADMIN_RESET_KEY` - Admin authentication key
@@ -101,13 +101,13 @@ By default, shows last 7 days. You can customize:
 ### Example URLs
 ```
 # Last 7 days (default)
-/usage-reconciliation?key=YOUR_KEY
+/usage-api?key=YOUR_KEY
 
 # Specific date range
-/usage-reconciliation?key=YOUR_KEY&start_date=2026-02-01&end_date=2026-02-07
+/usage-api?key=YOUR_KEY&start_date=2026-02-01&end_date=2026-02-07
 
 # Export as JSON
-/usage-reconciliation?key=YOUR_KEY&format=json
+/usage-api?key=YOUR_KEY&format=json
 ```
 
 ## Understanding the Dashboard
@@ -237,7 +237,7 @@ last_month_start = (datetime.now().replace(day=1) - timedelta(days=1)).replace(d
 last_month_end = datetime.now().replace(day=1).strftime('%Y-%m-%d')
 
 # Compare
-# Visit: /usage-reconciliation?key=KEY&start_date={last_month_start}&end_date={last_month_end}
+# Visit: /usage-api?key=KEY&start_date={last_month_start}&end_date={last_month_end}
 ```
 
 ### 2. Validate Tracking Accuracy
@@ -249,7 +249,7 @@ yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
 today = datetime.now().strftime('%Y-%m-%d')
 
 # Should be within 5%
-# Visit: /usage-reconciliation?key=KEY&start_date={yesterday}&end_date={today}
+# Visit: /usage-api?key=KEY&start_date={yesterday}&end_date={today}
 ```
 
 ### 3. Audit for Billing Disputes
