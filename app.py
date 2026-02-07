@@ -7,7 +7,7 @@ import re
 import sys
 import uuid
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session
 from openai import OpenAI
 from dotenv import load_dotenv
