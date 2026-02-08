@@ -13,6 +13,7 @@ services:
     # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_ADMIN_API_KEY=${OPENAI_ADMIN_API_KEY}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
       - ADMIN_RESET_KEY=${ADMIN_RESET_KEY}
       - MAX_QUERIES_PER_SESSION=${MAX_QUERIES_PER_SESSION:-20}
