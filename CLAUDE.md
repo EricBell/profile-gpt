@@ -153,7 +153,8 @@ This app is ready for deployment on Dokploy (self-hosted PaaS).
 1. In Dokploy, create a new "Compose" application
 2. Point to this repository
 3. Set environment variables in Dokploy UI:
-   - `OPENAI_API_KEY` (required)
+   - `OPENAI_API_KEY` (required - project-level API key for chat/classification)
+   - `OPENAI_ADMIN_API_KEY` (optional - admin-level API key for Usage API Comparison feature)
    - `FLASK_SECRET_KEY` (required - MUST be 32+ characters, generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
    - `ADMIN_RESET_KEY` (optional - if set, should be 16+ characters for security)
 4. Configure volumes for persistent data (`persona.txt`, `logs/`)
@@ -199,6 +200,7 @@ ProfileGPT automatically tracks OpenAI API token usage and costs for all API cal
   - Identify discrepancies in token counts or costs
   - Reconcile billing data with internal logs
   - Supports date range filtering
+  - **Requires:** `OPENAI_ADMIN_API_KEY` environment variable (admin-level API key, not project key)
 
 **Key Metrics Available:**
 - Total API calls and token usage

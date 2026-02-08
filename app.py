@@ -950,10 +950,10 @@ def usage_api():
         )
         local_stats = calculate_usage_stats(local_records)
 
-        # Fetch OpenAI usage data
-        api_key = os.environ.get('OPENAI_API_KEY')
+        # Fetch OpenAI usage data (requires admin API key)
+        api_key = os.environ.get('OPENAI_ADMIN_API_KEY')
         if not api_key:
-            raise ValueError("OPENAI_API_KEY not configured")
+            raise ValueError("OPENAI_ADMIN_API_KEY not configured. The Usage API requires an admin-level API key, not a project key.")
 
         openai_response = fetch_openai_usage(
             api_key,

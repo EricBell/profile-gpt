@@ -59,6 +59,7 @@ ENV QUERY_LOG_PATH=/data/logs
 # CRITICAL: Set these environment variables when running the container!
 # Generate secure keys with: python -c "import secrets; print(secrets.token_hex(32))"
 ENV OPENAI_API_KEY=
+ENV OPENAI_ADMIN_API_KEY=
 ENV FLASK_SECRET_KEY=
 ENV ADMIN_RESET_KEY=
 ENV MAX_QUERIES_PER_SESSION=20
